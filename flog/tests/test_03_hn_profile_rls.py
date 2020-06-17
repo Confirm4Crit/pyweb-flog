@@ -33,6 +33,7 @@ import pytest
 import responses
 import webtest
 
+from flog.libs import hackernews
 from flog.views import hn_profile_rls
 
 
@@ -43,14 +44,13 @@ def wt(app):
 
 class Tests:
     example_profile = {
-        'id': 'foo',
         'karma': '123',
         'submitted': [4, 5, 6]
     }
 
     def test_hn_process_profile(self):
-        result = hn_profile_rls.hn_process_profile(self.example_profile)
-        assert result == 'HackerNews user foo has 3 submissions and 123 karma.'
+        result = hackernews.process_profile(self.example_profile)
+        assert result == (3, '123')
 
     @responses.activate
     def test_hn_fetch_profile(self):
@@ -60,7 +60,7 @@ class Tests:
             json={'foo': 'bar'}
         )
         # TODO: demonstrate what happens if 'rsyring' is changed
-        result = hn_profile_rls.hn_fetch_profile('rsyring')
+        result = hackernews.fetch_profile('rsyring')
         # TODO: note that we are only testing that the data is passed through.  It doesn't have to
         # be actual profile data.
         assert result == {'foo': 'bar'}
@@ -69,10 +69,19 @@ class Tests:
         resp = wt.get('/hn-profile-rls')
         resp.form['username'] = 'rsyring'
 
-        with mock.patch.object(hn_profile_rls, 'hn_fetch_profile') as m_fetch_profile:
+        with mock.patch.object(hn_profile_rls.hackernews, 'fetch_profile') as m_fetch_profile:
             m_fetch_profile.return_value = self.example_profile
 
             resp2 = resp.form.submit()
-            assert 'HackerNews user foo has 3 submissions and 123 karma.' in resp2
+            assert 'HackerNews user <strong>rsyring</strong> has 3 submissions and 123 karma.' \
+                in resp2
 
             m_fetch_profile.assert_called_once_with('rsyring')
+
+    def test_view_invalid_username(self, wt):
+        resp = wt.get('/hn-profile-rls')
+        resp.form['username'] = 'rsyrin'
+
+        with hackernews.mock_profile():
+            resp2 = resp.form.submit()
+            assert 'No HackerNews user: <strong>rsyrin</strong>' in resp2

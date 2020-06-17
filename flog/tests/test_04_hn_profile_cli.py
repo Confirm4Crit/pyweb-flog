@@ -23,15 +23,20 @@
        use a common function (hackernews.profile_stats(username, use_html)) that both the cli
        function and view function can use.
 """
-import pytest
+from flog.libs.hackernews import mock_profile
 
 
 class Tests:
-    @pytest.mark.skip(reason='expected to fail until command is created')
-    def test_cli_hn_profile(self, cli):
-        # Hint: you will need to do some mocking
-        result = cli.invoke('hn-profile', 'rsyring')
-        assert result.output == 'HackerNews user rsyring has 3 submissions and 123 karma.\n'
 
-        result = cli.invoke('hn-profile', 'foo')
-        assert result.output == 'HackerNews user foo has 3 submissions and 123 karma.\n'
+    def test_cli_hn_profile(self, cli):
+        with mock_profile(123):
+            result = cli.invoke('hn-profile', 'rsyring')
+            assert result.output == 'HackerNews user rsyring has 3 submissions and 123 karma.\n'
+
+            result = cli.invoke('hn-profile', 'foo')
+            assert result.output == 'HackerNews user foo has 3 submissions and 123 karma.\n'
+
+    def test_cli_hn_profile_invalid_user(self, cli):
+        with mock_profile():
+            result = cli.invoke('hn-profile', 'rsyrin')
+            assert result.output == 'No HackerNews user: rsyrin\n'

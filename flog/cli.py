@@ -2,6 +2,7 @@ import click
 from flask import Blueprint
 
 from flog.ext import mail
+from flog.libs import hackernews
 
 cli_bp = Blueprint('cli', __name__, cli_group=None)
 
@@ -29,3 +30,9 @@ def _mail(email):
         recipients=[email],
     )
     print(f'Test email sent to: {email}')
+
+
+@cli_bp.cli.command()
+@click.argument('username')
+def hn_profile(username):
+    print(hackernews.profile_stats(username, use_html=False))
